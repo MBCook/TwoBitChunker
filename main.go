@@ -32,6 +32,8 @@ func main() {
 
 	filename := os.Args[1]
 
+	fmt.Printf("Opening %s...\n", filename)
+
 	file, err := os.OpenFile(filename, os.O_RDONLY, 0)
 
 	if err != nil {
@@ -46,6 +48,8 @@ func main() {
 
 	// Now we can do our actual work. Let's get our image.
 
+	fmt.Println("Decoding image...")
+
 	inputImage, _, err := image.Decode(file)
 
 	if err != nil {
@@ -56,11 +60,15 @@ func main() {
 
 	// Let's put that in an RGBA so we can easily mess with it
 
+	fmt.Println("Making a copy for us image...")
+
 	ourImage := image.NewRGBA(inputImage.Bounds())
 
 	draw.Draw(ourImage, ourImage.Bounds(), inputImage, image.Point{0, 0}, draw.Src)
 
 	// Clamp all the pixel values
+
+	fmt.Println("Clamping pixels...")
 
 	clampPixels(ourImage)
 
@@ -102,10 +110,12 @@ func processRow(inputImage *image.RGBA, rowRange IntRange, sequenceNumber int) i
 }
 
 func clampPixels(inputImage *image.RGBA) {
+	bounds := inputImage.Bounds()
+
 	// Force all pixels to black or white
 
-	for y := inputImage.Bounds().Min.Y; y <= inputImage.Bounds().Max.Y; y++ {
-		for x := inputImage.Bounds().Min.X; y <= inputImage.Bounds().Max.X; x++ {
+	for y := bounds.Min.Y; y <= bounds.Max.Y; y++ {
+		for x := bounds.Min.X; x <= bounds.Max.X; x++ {
 			if colorIsWhite(inputImage.At(x, y)) {
 				inputImage.Set(x, y, color.White)
 			} else {
@@ -443,12 +453,12 @@ func isColumnEmpty(inputImage *image.RGBA, x int, startY int, endY int) bool {
 	return true
 }
 
-func colorIsWhite(color color.Color) bool {
+func colorIsWhite(theColor color.Color) bool {
 	// We expect grayscale images, so the fact that won't work well with colors is not important
 
-	r, g, b, _ := color.RGBA()
+	r, g, b, _ := theColor.RGBA()
 
-	return (r + g + b) > (0x7FFF * 3)
+	return (r + g + b) < (0x7FFF * 3)
 }
 
 func printHelp() {
