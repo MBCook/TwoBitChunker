@@ -96,7 +96,7 @@ func main() {
 func processRow(inputImage *image.RGBA, rowRange IntRange, sequenceNumber int) int {
 	// Figure out the column ranges
 
-	fmt.Printf("\t\tFinding individual images...\n", rowRange.start, rowRange.end)
+	fmt.Printf("\t\tFinding individual images...\n")
 
 	columnRanges := findColumnRanges(inputImage, rowRange.start, rowRange.end)
 
@@ -114,9 +114,11 @@ func clampPixels(inputImage *image.RGBA) {
 
 	// Force all pixels to black or white
 
-	for y := bounds.Min.Y; y <= bounds.Max.Y; y++ {
-		for x := bounds.Min.X; x <= bounds.Max.X; x++ {
-			if colorIsWhite(inputImage.At(x, y)) {
+	for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
+		for x := bounds.Min.X; x < bounds.Max.X; x++ {
+			isWhite := colorIsWhite(inputImage.At(x, y))
+
+			if isWhite {
 				inputImage.Set(x, y, color.White)
 			} else {
 				inputImage.Set(x, y, color.Black)
@@ -314,7 +316,7 @@ func findRowRanges(inputImage *image.RGBA) []IntRange {
 
 	currentStart := -1
 
-	for y := startY; y <= endY; y++ {
+	for y := startY; y < endY; y++ {
 		rowIsEmpty := isRowEmpty(inputImage, y)
 
 		if rowIsEmpty {
@@ -327,7 +329,7 @@ func findRowRanges(inputImage *image.RGBA) []IntRange {
 				theRange := IntRange{currentStart, y - 1}
 
 				if theRange.end-theRange.start >= 256 {
-					fmt.Fprintf(os.Stderr, "Warning: Unbroken group of rows between %d and %d which is over 255 rows, skipping", theRange.start, theRange.end)
+					fmt.Fprintf(os.Stderr, "Warning: Unbroken group of rows between %d and %d which is over 255 rows, skipping\n", theRange.start, theRange.end)
 				} else {
 					ranges = append(ranges, theRange)
 				}
@@ -338,7 +340,7 @@ func findRowRanges(inputImage *image.RGBA) []IntRange {
 			// If we don't have a range, start one
 			// If we have a range, nothing happens
 
-			if currentStart != -1 {
+			if currentStart == -1 {
 				currentStart = y
 			}
 		}
@@ -352,7 +354,7 @@ func findRowRanges(inputImage *image.RGBA) []IntRange {
 		theRange := IntRange{currentStart, endY}
 
 		if theRange.end-theRange.start >= 256 {
-			fmt.Fprintf(os.Stderr, "Warning: Unbroken group of rows between %d and %d which is over 255 rows, skipping", theRange.start, theRange.end)
+			fmt.Fprintf(os.Stderr, "Warning: Unbroken group of rows between %d and %d which is over 255 rows, skipping\n", theRange.start, theRange.end)
 		} else {
 			ranges = append(ranges, theRange)
 		}
@@ -378,7 +380,7 @@ func findColumnRanges(inputImage *image.RGBA, startY int, endY int) []IntRange {
 
 	currentStart := -1
 
-	for x := startX; x <= endX; x++ {
+	for x := startX; x < endX; x++ {
 		columnIsEmpty := isColumnEmpty(inputImage, x, startY, endY)
 
 		if columnIsEmpty {
@@ -391,7 +393,7 @@ func findColumnRanges(inputImage *image.RGBA, startY int, endY int) []IntRange {
 				theRange := IntRange{currentStart, x - 1}
 
 				if theRange.end-theRange.start >= 256 {
-					fmt.Fprintf(os.Stderr, "Warning: Unbroken group of columns between %d and %d which is over 255 columns, skipping", theRange.start, theRange.end)
+					fmt.Fprintf(os.Stderr, "Warning: Unbroken group of columns between %d and %d which is over 255 columns, skipping\n", theRange.start, theRange.end)
 				} else {
 					ranges = append(ranges, theRange)
 				}
@@ -402,7 +404,7 @@ func findColumnRanges(inputImage *image.RGBA, startY int, endY int) []IntRange {
 			// If we don't have a range, start one
 			// If we have a range, nothing happens
 
-			if currentStart != -1 {
+			if currentStart == -1 {
 				currentStart = x
 			}
 		}
@@ -416,7 +418,7 @@ func findColumnRanges(inputImage *image.RGBA, startY int, endY int) []IntRange {
 		theRange := IntRange{currentStart, endX}
 
 		if theRange.end-theRange.start >= 256 {
-			fmt.Fprintf(os.Stderr, "Warning: Unbroken group of columns between %d and %d which is over 255 columns, skipping", theRange.start, theRange.end)
+			fmt.Fprintf(os.Stderr, "Warning: Unbroken group of columns between %d and %d which is over 255 columns, skipping\n", theRange.start, theRange.end)
 		} else {
 			ranges = append(ranges, theRange)
 		}
@@ -434,8 +436,10 @@ func isRowEmpty(inputImage *image.RGBA, y int) bool {
 		panic("Y value out of bounds")
 	}
 
-	for x := imageBounds.Min.X; x <= imageBounds.Max.X; x++ {
-		if !colorIsWhite(inputImage.At(x, y)) {
+	for x := imageBounds.Min.X; x < imageBounds.Max.X; x++ {
+		r, _, _, _ := inputImage.At(x, y).RGBA()
+
+		if r == 0 {
 			return false
 		}
 	}
@@ -444,8 +448,10 @@ func isRowEmpty(inputImage *image.RGBA, y int) bool {
 }
 
 func isColumnEmpty(inputImage *image.RGBA, x int, startY int, endY int) bool {
-	for y := startY; y <= endY; y++ {
-		if !colorIsWhite(inputImage.At(x, y)) {
+	for y := startY; y < endY; y++ {
+		r, _, _, _ := inputImage.At(x, y).RGBA()
+
+		if r == 0 {
 			return false
 		}
 	}
@@ -456,9 +462,15 @@ func isColumnEmpty(inputImage *image.RGBA, x int, startY int, endY int) bool {
 func colorIsWhite(theColor color.Color) bool {
 	// We expect grayscale images, so the fact that won't work well with colors is not important
 
-	r, g, b, _ := theColor.RGBA()
+	r, g, b, a := theColor.RGBA()
 
-	return (r + g + b) < (0x7FFF * 3)
+	if a < 0x7FFF {
+		return true
+	} else {
+		isWhite := (r + g + b) > (0x7FFF * 3)
+
+		return isWhite
+	}
 }
 
 func printHelp() {
