@@ -234,7 +234,9 @@ func writeC(image image.Image, sequenceNumber int) {
 
 	// Now the actual image data
 
-	for y := 0; y < image.Bounds().Dy(); y++ {
+	bounds := image.Bounds()
+
+	for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
 		_, err := fmt.Fprintf(outputFile, "\t")
 
 		if err != nil {
@@ -267,8 +269,10 @@ func writeC(image image.Image, sequenceNumber int) {
 			for i := 0; i < 8; i++ {
 				bit := 0
 
-				if x*8+i < image.Bounds().Max.X {
-					r, _, _, _ := image.At(x*8+i, y).RGBA()
+				trueX := x*8 + i + bounds.Min.X
+
+				if trueX >= bounds.Min.X && trueX < bounds.Max.X {
+					r, _, _, _ := image.At(trueX, y).RGBA()
 
 					if r == 0 {
 						bit = 1
@@ -287,7 +291,7 @@ func writeC(image image.Image, sequenceNumber int) {
 			somethingWritten = true
 		}
 
-		if y == image.Bounds().Dy()-1 {
+		if y == bounds.Max.Y-1 {
 			_, err = fmt.Fprintln(outputFile)
 		} else {
 			_, err = fmt.Fprintln(outputFile, ",")
@@ -442,7 +446,7 @@ func findColumnRanges(inputImage *image.RGBA, startY int, endY int) []IntRange {
 func isRowEmpty(inputImage *image.RGBA, y int) bool {
 	imageBounds := inputImage.Bounds()
 
-	if y < imageBounds.Min.Y || y > imageBounds.Max.Y {
+	if y < imageBounds.Min.Y || y >= imageBounds.Max.Y {
 		panic("Y value out of bounds")
 	}
 
