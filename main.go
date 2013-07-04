@@ -254,34 +254,44 @@ func writeC(image image.Image, sequenceNumber int) {
 
 					os.Exit(13)
 				}
+			} else {
+				_, err := fmt.Fprintf(outputFile, "0b")
 
-				for i := 0; i < 8; i++ {
-					pixel := color.Color(color.White)
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "\t\t\tUnable to write C source %s: %s\n", filename, err)
 
-					if x*8+i <= image.Bounds().Max.X {
-						pixel = image.At(x*8+i, y)
-					}
+					os.Exit(13)
+				}
+			}
 
-					bit := 0
+			for i := 0; i < 8; i++ {
+				bit := 0
 
-					if pixel == color.Black {
+				if x*8+i < image.Bounds().Max.X {
+					r, _, _, _ := image.At(x*8+i, y).RGBA()
+
+					if r == 0 {
 						bit = 1
 					}
+				}
 
-					_, err := fmt.Fprintf(outputFile, "%d", bit)
+				_, err := fmt.Fprintf(outputFile, "%d", bit)
 
-					if err != nil {
-						fmt.Fprintf(os.Stderr, "\t\t\tUnable to write C source %s: %s\n", filename, err)
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "\t\t\tUnable to write C source %s: %s\n", filename, err)
 
-						os.Exit(14)
-					}
+					os.Exit(14)
 				}
 			}
 
 			somethingWritten = true
 		}
 
-		_, err = fmt.Fprintln(outputFile)
+		if y == image.Bounds().Dy()-1 {
+			_, err = fmt.Fprintln(outputFile)
+		} else {
+			_, err = fmt.Fprintln(outputFile, ",")
+		}
 
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "\t\t\tUnable to write C source %s: %s\n", filename, err)
