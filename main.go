@@ -66,7 +66,7 @@ func main() {
 
 	draw.Draw(ourImage, ourImage.Bounds(), inputImage, image.Point{0, 0}, draw.Src)
 
-	// Clamp all the pixel values
+	// Clamp all the pixel values to make checking for black or white trivial
 
 	fmt.Println("Clamping pixels...")
 
@@ -128,7 +128,7 @@ func clampPixels(inputImage *image.RGBA) {
 }
 
 func extractImage(inputImage *image.RGBA, rowRange IntRange, columnRange IntRange, sequenceNumber int) {
-	// Make a new image from the selected portion of the original image
+	// Make a subimage from the selected portion of the original image, which makes things a bit easier
 
 	ourRectangle := image.Rect(columnRange.start, rowRange.start, columnRange.end, rowRange.end)
 
@@ -144,9 +144,13 @@ func extractImage(inputImage *image.RGBA, rowRange IntRange, columnRange IntRang
 }
 
 func writePNG(image image.Image, sequenceNumber int) {
+	// Generate the filename
+
 	filename := fmt.Sprintf("%d.png", sequenceNumber)
 
 	fmt.Printf("\t\t\tWriting %s, which is %dx%d...\n", filename, image.Bounds().Dx(), image.Bounds().Dy())
+
+	// Create/open the file
 
 	outputFile, err := os.Create(filename)
 
@@ -158,6 +162,8 @@ func writePNG(image image.Image, sequenceNumber int) {
 
 	defer outputFile.Close()
 
+	// Encode the PNG
+
 	err = png.Encode(outputFile, image)
 
 	if err != nil {
@@ -168,9 +174,13 @@ func writePNG(image image.Image, sequenceNumber int) {
 }
 
 func writeC(image image.Image, sequenceNumber int) {
+	// Generate the filename
+
 	filename := fmt.Sprintf("%d.c", sequenceNumber)
 
 	fmt.Printf("\t\t\tWriting %s as C data...\n", filename)
+
+	// Create/open the file
 
 	outputFile, err := os.Create(filename)
 
@@ -192,7 +202,7 @@ func writeC(image image.Image, sequenceNumber int) {
 
 	// First we'll write out the start of the file
 
-	_, err = fmt.Fprintf(outputFile, "byte image%dWidth %d;\n", sequenceNumber, image.Bounds().Dx())
+	_, err = fmt.Fprintf(outputFile, "byte image%dWidth = %d;\n", sequenceNumber, image.Bounds().Dx())
 
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "\t\t\tUnable to write C source %s: %s\n", filename, err)
@@ -200,7 +210,7 @@ func writeC(image image.Image, sequenceNumber int) {
 		os.Exit(7)
 	}
 
-	_, err = fmt.Fprintf(outputFile, "byte image%dHeight %d;\n", sequenceNumber, image.Bounds().Dy())
+	_, err = fmt.Fprintf(outputFile, "byte image%dHeight = %d;\n", sequenceNumber, image.Bounds().Dy())
 
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "\t\t\tUnable to write C source %s: %s\n", filename, err)
@@ -208,7 +218,7 @@ func writeC(image image.Image, sequenceNumber int) {
 		os.Exit(8)
 	}
 
-	_, err = fmt.Fprintf(outputFile, "byte image%dBytes %d;\n", sequenceNumber, image.Bounds().Dy()*rowInBytes)
+	_, err = fmt.Fprintf(outputFile, "byte image%dBytes = %d;\n", sequenceNumber, image.Bounds().Dy()*rowInBytes)
 
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "\t\t\tUnable to write C source %s: %s\n", filename, err)
@@ -232,7 +242,7 @@ func writeC(image image.Image, sequenceNumber int) {
 		os.Exit(11)
 	}
 
-	// Now the actual image data
+	// Now the actual image data, one row at a time
 
 	bounds := image.Bounds()
 
@@ -246,6 +256,8 @@ func writeC(image image.Image, sequenceNumber int) {
 		}
 
 		somethingWritten := false
+
+		// Walk through each byte we'll have to output
 
 		for x := 0; x < rowInBytes; x++ {
 			if somethingWritten {
@@ -265,6 +277,8 @@ func writeC(image image.Image, sequenceNumber int) {
 					os.Exit(13)
 				}
 			}
+
+			// Do each bit individually (I'm not going to bother making things "proper")
 
 			for i := 0; i < 8; i++ {
 				bit := 0
@@ -444,6 +458,8 @@ func findColumnRanges(inputImage *image.RGBA, startY int, endY int) []IntRange {
 }
 
 func isRowEmpty(inputImage *image.RGBA, y int) bool {
+	// Checks to see if every pixel in the row is white
+
 	imageBounds := inputImage.Bounds()
 
 	if y < imageBounds.Min.Y || y >= imageBounds.Max.Y {
@@ -462,6 +478,8 @@ func isRowEmpty(inputImage *image.RGBA, y int) bool {
 }
 
 func isColumnEmpty(inputImage *image.RGBA, x int, startY int, endY int) bool {
+	// Checks to see if every pixel in the column between startY and endY is white
+
 	for y := startY; y < endY; y++ {
 		r, _, _, _ := inputImage.At(x, y).RGBA()
 
@@ -488,6 +506,8 @@ func colorIsWhite(theColor color.Color) bool {
 }
 
 func printHelp() {
+	// Basic help information
+
 	fmt.Println("TwoBitChunker by Michael Cook (http://www.foobarsoft.com)")
 	fmt.Println()
 	fmt.Printf("Usage: %s filename.img\n", os.Args[0])
