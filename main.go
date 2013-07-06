@@ -516,5 +516,5 @@ func printHelp() {
 	fmt.Println()
 	fmt.Println("The input should be a GIF, PNG, or JPEG image. Pixels with an average RGB value over 127 will be considered black, all others white. Transparency will be ignored.")
 	fmt.Println()
-	fmt.Println("Outputs will be sequentially numbered PNGs and C source (i.e. 1.png and 1.c, 2.png and 2.c, etc). Inside the C files will be four variables: imageXWidth, imageXHeight, imageXBytes, and imageXData. Width and height will be bytes, data is a single-dimensional array of bytes containing the pixel data, padded to byte boundaries with 0s, in row order.")
+	fmt.Println("Outputs will be sequentially numbered PNGs and C source (i.e. 1.png and 1.c, 2.png and 2.c, etc). Inside the C files will be four variables: imageXWidth, imageXHeight, imageXBytes, and imageXData. Width and height will be bytes, data is a single-dimensional array of bytes containing the pixel data, padded to byte boundaries with 0s, in row order.\n")
 }
